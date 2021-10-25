@@ -68,5 +68,39 @@ func (d *Dependency) AddFriend(c echo.Context) error {
 }
 
 func (d *Dependency) RemoveFriend(c echo.Context) error {
-	return nil
+	user := c.Get("UserData").(auth.User)
+	tag := c.Param("tag")
+
+	// Check if the tag exists
+	exists, err := account.IsTagExists(tag, d.DB, c.Request().Context(), d.Memory)
+	if err != nil {
+		return err
+	}
+
+	if !exists {
+		return c.JSON(http.StatusNotFound, out.Err{Error: "tag provided does not exists"})
+	}
+
+	// Fetch the other guy
+	with, err := account.GetAccountBy("tag", account.Account{Tag: tag}, d.DB, c.Request().Context())
+	if err != nil {
+		return err
+	}
+
+	// Check if already friends
+	already, err := account.IsFriend(user.ID, with.ID, d.DB, c.Request().Context())
+	if err != nil {
+		return err
+	}
+
+	if !already {
+		return c.JSON(http.StatusBadRequest, out.Msg{Message: "already not friends"})
+	}
+
+	acc, err := account.RemoveFriend(user.ID, with.ID, d.DB, c.Request().Context())
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusOK, acc)
 }

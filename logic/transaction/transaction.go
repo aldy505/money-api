@@ -127,7 +127,7 @@ func GetTransactionBy(switcher string, t Transaction, db *sqlx.DB, ctx context.C
 }
 
 // Returns the transaction ID
-func CreateTransaction(i Intermmediate, db *sqlx.DB, ctx context.Context) (int, error) {
+func CreateTransaction(i Intermediate, db *sqlx.DB, ctx context.Context) (int, error) {
 	c, err := db.Connx(ctx)
 	if err != nil {
 		return 0, err
@@ -185,7 +185,7 @@ func UpdateTransaction(t Transaction, db *sqlx.DB, ctx context.Context) (int, er
 }
 
 // Returns the transaction ID.
-func CreateRequest(i Intermmediate, db *sqlx.DB, ctx context.Context) (int, error) {
+func CreateRequest(i Intermediate, db *sqlx.DB, ctx context.Context) (int, error) {
 	c, err := db.Connx(ctx)
 	if err != nil {
 		return 0, err

@@ -19,7 +19,7 @@ type Transaction struct {
 type Status int
 
 const (
-	StatusRequested Status = iota
+	StatusRequested Status = iota + 1
 	StatusRejected
 	StatusPending
 	StatusSuccess
@@ -27,10 +27,10 @@ const (
 	StatusFailed
 )
 
-type Intermmediate struct {
-	Sender    int
-	Recipient int
-	Amount    int64
-	Message   string
-	Status    Status
+type Intermediate struct {
+	Sender    int    `json:"sender_id"`
+	Recipient int    `json:"recipient_id"`
+	Amount    int64  `json:"amount"`
+	Message   string `json:"message"`
+	Status    Status `json:"status"`
 }
