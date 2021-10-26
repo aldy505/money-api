@@ -24,14 +24,14 @@ func main() {
 	// Setup sqlite database
 	db, err := sqlx.Open("sqlite3", os.Getenv("DATABASE_URL"))
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatal(err)
 	}
 	defer db.Close()
 
 	// Migrate first
 	err = migration.Migrate(db, context.Background())
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatal(err)
 	}
 
 	// Setup in memory database
@@ -69,6 +69,7 @@ func main() {
 	account := app.Group("/account")
 	account.Use(h.MustLogin)
 	account.GET("/my", h.GetMyAccount)
+	account.PATCH("/my", h.UpdateAccount)
 	account.GET("/friends", h.GetFriends)
 	account.PUT("/friends", h.AddFriend)
 	account.DELETE("/friends/:tag", h.RemoveFriend)

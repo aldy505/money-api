@@ -48,8 +48,38 @@ func (d *Dependency) Login(c echo.Context) error {
 }
 
 func (d *Dependency) Signup(c echo.Context) error {
+	var user auth.User
+	err := c.Bind(&user)
+	if err != nil {
+		return err
+	}
 
-	return nil
+	check, err := auth.CheckIfUserExists(user, d.DB, c.Request().Context())
+	if err != nil {
+		return err
+	}
+
+	if check {
+		return c.JSON(http.StatusBadRequest, out.Err{Error: "user already exists"})
+	}
+
+	pass, err := auth.GeneratePassword(user.Password)
+	if err != nil {
+		return err
+	}
+
+	finalUser := auth.User{
+		Password: pass,
+		Name:     user.Name,
+		Email:    user.Email,
+		Address:  user.Address,
+	}
+	u, err := auth.RegisterUser(finalUser, d.DB, c.Request().Context())
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusCreated, auth.User{ID: u.ID, Name: u.Name, Email: u.Email})
 }
 
 func (d *Dependency) Verify(c echo.Context) error {

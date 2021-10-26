@@ -4,6 +4,7 @@ import (
 	"context"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/allegro/bigcache/v3"
 	"github.com/georgysavva/scany/sqlscan"
@@ -74,6 +75,39 @@ func GetAllUsers(db *sqlx.DB, ctx context.Context) ([]User, error) {
 	}
 
 	return u, nil
+}
+
+func RegisterUser(u User, db *sqlx.DB, ctx context.Context) (User, error) {
+	c, err := db.Connx(ctx)
+	if err != nil {
+		return User{}, err
+	}
+	defer c.Close()
+
+	r, err := c.QueryContext(
+		ctx,
+		`INSERT INTO users
+			(name, password, email, address, created_at, updated_at)
+			VALUES (?, ?, ?, ?, ?, ?) RETURNING *;`,
+		u.Name,
+		u.Password,
+		u.Email,
+		u.Address,
+		time.Now().Unix(),
+		time.Now().Unix(),
+	)
+	if err != nil {
+		return User{}, err
+	}
+	defer r.Close()
+
+	var user User
+	err = sqlscan.ScanOne(&user, r)
+	if err != nil {
+		return User{}, err
+	}
+
+	return user, nil
 }
 
 func RefreshMemory(u []User, mem *bigcache.BigCache) error {

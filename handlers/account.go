@@ -104,3 +104,34 @@ func (d *Dependency) RemoveFriend(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, acc)
 }
+
+func (d *Dependency) UpdateAccount(c echo.Context) error {
+	user := c.Get("UserData").(auth.User)
+	acc, err := account.GetAccountBy("id", account.Account{ID: user.ID}, d.DB, c.Request().Context())
+	if err != nil {
+		return err
+	}
+
+	var body account.Account
+	err = c.Bind(body)
+	if err != nil {
+		return err
+	}
+
+	// Check if current tag is the same as input tag
+	if body.Tag == acc.Tag {
+		return c.JSON(http.StatusTeapot, out.Msg{Message: "its the same innit?"})
+	}
+
+	id, err := account.UpdateTag(body, d.DB, c.Request().Context())
+	if err != nil {
+		return err
+	}
+
+	acc, err = account.GetAccountBy("id", account.Account{ID: id}, d.DB, c.Request().Context())
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusOK, acc)
+}

@@ -143,7 +143,7 @@ func CreateTransaction(i Intermediate, db *sqlx.DB, ctx context.Context) (int, e
 		i.Sender,
 		i.Recipient,
 		i.Message,
-		i.Status,
+		StatusPending,
 		time.Now().Unix(),
 		time.Now().Unix(),
 	)
@@ -162,7 +162,7 @@ func CreateTransaction(i Intermediate, db *sqlx.DB, ctx context.Context) (int, e
 }
 
 // Only updates the status for now. Returns the transaction ID.
-func UpdateTransaction(t Transaction, db *sqlx.DB, ctx context.Context) (int, error) {
+func UpdateStatus(t Transaction, db *sqlx.DB, ctx context.Context) (int, error) {
 	c, err := db.Connx(ctx)
 	if err != nil {
 		return 0, err

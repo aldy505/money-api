@@ -1,0 +1,44 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - "*"
+  pull_request:
+    branches:
+      - "*"
+
+jobs:
+  ci:
+    name: CI
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    container: golang:1.17.2
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Installling dependencies
+        run: go mod download
+
+      - name: Build
+        run: go build main.go
+
+      - name: Run test & coverage
+        run: go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+        env:
+          DATABASE_URL: ./money.db
+          PORT: 3000
+          ALLOW_URL: "*"
+          JWT_ISSUER: Borrowing6-Kerosene-Earplugs-Emission
+          TZ: UTC
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v1
+        with:
+          languages: go
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v1
+
+      - uses: codecov/codecov-action@v2

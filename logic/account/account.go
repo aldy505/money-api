@@ -129,41 +129,6 @@ func IsIDExists(id int, db *sqlx.DB, ctx context.Context, mem *bigcache.BigCache
 	return false, err
 }
 
-func IsTagExists(tag string, db *sqlx.DB, ctx context.Context, mem *bigcache.BigCache) (bool, error) {
-	cache, err := mem.Get("AccountTags")
-	if err == nil {
-		ids := strings.Split(string(cache), ",")
-		for _, v := range ids {
-			if v == tag {
-				return true, nil
-			}
-		}
-		return false, nil
-	}
-
-	if errors.Is(err, bigcache.ErrEntryNotFound) {
-		accounts, err := GetAllAccounts(db, ctx)
-		if err != nil {
-			return false, err
-		}
-
-		err = RefreshMemory(accounts, mem)
-		if err != nil {
-			return false, err
-		}
-
-		for _, v := range accounts {
-			if v.Tag == tag {
-				return true, nil
-			}
-		}
-
-		return false, nil
-	}
-
-	return false, err
-}
-
 func RefreshMemory(a []Account, mem *bigcache.BigCache) error {
 	var ids []string
 	var tags []string
