@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"log"
 	"money-api/handlers"
+	"money-api/platform/decorator"
 	"money-api/platform/migration"
 	"net/http"
 	"os"
@@ -24,20 +25,20 @@ func main() {
 	// Setup sqlite database
 	db, err := sqlx.Open("sqlite3", os.Getenv("DATABASE_URL"))
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(decorator.Err(err))
 	}
 	defer db.Close()
 
 	// Migrate first
 	err = migration.Migrate(db, context.Background())
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(decorator.Err(err))
 	}
 
 	// Setup in memory database
 	mem, err := bigcache.NewBigCache(bigcache.DefaultConfig(3 * time.Hour))
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(decorator.Err(err))
 	}
 	defer mem.Close()
 
@@ -45,10 +46,11 @@ func main() {
 	jwtSecret := make([]byte, 64)
 	_, err = rand.Read(jwtSecret)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(decorator.Err(err))
 	}
 
 	app := echo.New()
+	app.HTTPErrorHandler = handlers.ErrorHandler
 
 	h := handlers.Dependency{
 		DB:        db,
@@ -63,8 +65,8 @@ func main() {
 	}))
 
 	auth := app.Group("/auth")
-	auth.GET("/", h.Login)
-	auth.POST("/", h.Signup)
+	auth.POST("/", h.Login)
+	auth.PUT("/", h.Signup)
 
 	account := app.Group("/account")
 	account.Use(h.MustLogin)

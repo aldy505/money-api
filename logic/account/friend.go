@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"money-api/platform/decorator"
 
 	"github.com/georgysavva/scany/sqlscan"
 	"github.com/jmoiron/sqlx"
@@ -16,7 +17,7 @@ func GetFriends(whom int, db *sqlx.DB, ctx context.Context) ([]Friend, error) {
 	}
 	defer c.Close()
 
-	r, err := c.QueryContext(ctx, "SELECT with FROM friends WHERE id = ?", whom)
+	r, err := c.QueryContext(ctx, "SELECT friend FROM friends WHERE id = ?", whom)
 	if err != nil {
 		return []Friend{}, err
 	}
@@ -74,7 +75,7 @@ func RemoveFriend(whom int, with int, db *sqlx.DB, ctx context.Context) (Account
 func IsFriend(whom int, with int, db *sqlx.DB, ctx context.Context) (bool, error) {
 	c, err := db.Connx(ctx)
 	if err != nil {
-		return false, err
+		return false, decorator.Err(err)
 	}
 	defer c.Close()
 
@@ -83,14 +84,16 @@ func IsFriend(whom int, with int, db *sqlx.DB, ctx context.Context) (bool, error
 		if errors.Is(err, sql.ErrNoRows) {
 			return false, nil
 		}
-		return false, err
+		return false, decorator.Err(err)
 	}
 	defer r.Close()
 
 	var f int
-	err = r.Scan(&f)
-	if err != nil {
-		return false, err
+	for r.Next() {
+		err = r.Scan(&f)
+		if err != nil {
+			return false, decorator.Err(err)
+		}
 	}
 
 	return f == with, nil

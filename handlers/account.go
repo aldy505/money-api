@@ -113,7 +113,7 @@ func (d *Dependency) UpdateAccount(c echo.Context) error {
 	}
 
 	var body account.Account
-	err = c.Bind(body)
+	err = c.Bind(&body)
 	if err != nil {
 		return err
 	}

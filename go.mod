@@ -3,6 +3,7 @@ module money-api
 go 1.17
 
 require (
+	github.com/aidarkhanov/nanoid/v2 v2.0.5
 	github.com/aldy505/phc-crypto v1.1.0
 	github.com/allegro/bigcache/v3 v3.0.1
 	github.com/georgysavva/scany v0.2.9

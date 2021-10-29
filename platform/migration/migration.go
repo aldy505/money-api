@@ -3,7 +3,6 @@ package migration
 import (
 	"context"
 	"database/sql"
-	"money-api/platform/decorator"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -35,7 +34,7 @@ func Migrate(db *sqlx.DB, ctx context.Context) error {
 func tableUsers(db *sqlx.DB, ctx context.Context) error {
 	c, err := db.Connx(ctx)
 	if err != nil {
-		return decorator.Err(err)
+		return err
 	}
 	defer c.Close()
 
@@ -49,7 +48,7 @@ func tableUsers(db *sqlx.DB, ctx context.Context) error {
 		created_at  DATETIME      NOT NULL
 	)`)
 	if err != nil {
-		return decorator.Err(err)
+		return err
 	}
 
 	return nil
@@ -58,7 +57,7 @@ func tableUsers(db *sqlx.DB, ctx context.Context) error {
 func tableAccounts(db *sqlx.DB, ctx context.Context) error {
 	c, err := db.Connx(ctx)
 	if err != nil {
-		return decorator.Err(err)
+		return err
 	}
 	defer c.Close()
 
@@ -71,7 +70,7 @@ func tableAccounts(db *sqlx.DB, ctx context.Context) error {
 		FOREIGN KEY (id)        REFERENCES users (id)
 	)`)
 	if err != nil {
-		return decorator.Err(err)
+		return err
 	}
 
 	return nil
@@ -80,21 +79,21 @@ func tableAccounts(db *sqlx.DB, ctx context.Context) error {
 func tableTransactions(db *sqlx.DB, ctx context.Context) error {
 	c, err := db.Connx(ctx)
 	if err != nil {
-		return decorator.Err(err)
+		return err
 	}
 	defer c.Close()
 
 	t, err := c.BeginTxx(ctx, &sql.TxOptions{})
 	if err != nil {
-		return decorator.Err(err)
+		return err
 	}
-	defer t.Rollback()
 
 	_, err = t.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS transactions (
 		id         INTEGER              PRIMARY KEY AUTOINCREMENT,
 		sender     INTEGER    NOT NULL,
 	  recipient  INTEGER    NOT NULL,
 		amount     MEDIUMINT  NOT NULL,
+		message    TEXT,
 		status     SMALLINT   NOT NULL DEFAULT 0,
 		updated_at DATETIME   NOT NULL,
 		created_at DATETIME   NOT NULL,
@@ -103,22 +102,25 @@ func tableTransactions(db *sqlx.DB, ctx context.Context) error {
 		FOREIGN KEY (recipient)   REFERENCES users (id)
 	)`)
 	if err != nil {
-		return decorator.Err(err)
+		t.Rollback()
+		return err
 	}
 
 	_, err = t.ExecContext(ctx, `CREATE INDEX IF NOT EXISTS idx_sender ON transactions (sender)`)
 	if err != nil {
-		return decorator.Err(err)
+		t.Rollback()
+		return err
 	}
 
 	_, err = t.ExecContext(ctx, `CREATE INDEX IF NOT EXISTS idx_recipient ON transactions (recipient)`)
 	if err != nil {
-		return decorator.Err(err)
+		t.Rollback()
+		return err
 	}
 
 	err = t.Commit()
 	if err != nil {
-		return decorator.Err(err)
+		return err
 	}
 
 	return nil
@@ -127,15 +129,14 @@ func tableTransactions(db *sqlx.DB, ctx context.Context) error {
 func tableFriends(db *sqlx.DB, ctx context.Context) error {
 	c, err := db.Connx(ctx)
 	if err != nil {
-		return decorator.Err(err)
+		return err
 	}
 	defer c.Close()
 
 	t, err := c.BeginTxx(ctx, &sql.TxOptions{})
 	if err != nil {
-		return decorator.Err(err)
+		return err
 	}
-	defer t.Rollback()
 
 	_, err = t.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS friends (
 		id      INTEGER   NOT NULL,
@@ -144,20 +145,23 @@ func tableFriends(db *sqlx.DB, ctx context.Context) error {
 		FOREIGN KEY (friend) REFERENCES users (id)
 	)`)
 	if err != nil {
-		return decorator.Err(err)
+		t.Rollback()
+		return err
 	}
 	_, err = t.ExecContext(ctx, `CREATE INDEX IF NOT EXISTS idx_id ON friends (id)`)
 	if err != nil {
-		return decorator.Err(err)
+		t.Rollback()
+		return err
 	}
 	_, err = t.ExecContext(ctx, `CREATE INDEX IF NOT EXISTS idx_friend ON friends (friend)`)
 	if err != nil {
-		return decorator.Err(err)
+		t.Rollback()
+		return err
 	}
 
 	err = t.Commit()
 	if err != nil {
-		return decorator.Err(err)
+		return err
 	}
 
 	return nil

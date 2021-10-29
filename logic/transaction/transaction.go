@@ -3,6 +3,7 @@ package transaction
 import (
 	"context"
 	"errors"
+	"money-api/platform/decorator"
 	"strconv"
 	"strings"
 	"time"
@@ -22,7 +23,7 @@ func IsTransactionExists(id int, db *sqlx.DB, ctx context.Context, mem *bigcache
 		for _, v := range ids {
 			s, err := strconv.Atoi(v)
 			if err != nil {
-				return false, err
+				return false, decorator.Err(err)
 			}
 
 			if s == id {
@@ -35,25 +36,25 @@ func IsTransactionExists(id int, db *sqlx.DB, ctx context.Context, mem *bigcache
 	if errors.Is(err, bigcache.ErrEntryNotFound) {
 		c, err := db.Connx(ctx)
 		if err != nil {
-			return false, err
+			return false, decorator.Err(err)
 		}
 		defer c.Close()
 
 		r, err := c.QueryContext(ctx, "SELECT id FROM transactions")
 		if err != nil {
-			return false, err
+			return false, decorator.Err(err)
 		}
 		defer r.Close()
 
 		var t []Transaction
 		err = sqlscan.ScanAll(&t, r)
 		if err != nil {
-			return false, err
+			return false, decorator.Err(err)
 		}
 
 		err = RefreshMemory(t, mem)
 		if err != nil {
-			return false, err
+			return false, decorator.Err(err)
 		}
 
 		for _, v := range t {
@@ -64,7 +65,7 @@ func IsTransactionExists(id int, db *sqlx.DB, ctx context.Context, mem *bigcache
 		return false, nil
 	}
 
-	return false, err
+	return false, decorator.Err(err)
 }
 
 // Switcher (1st param argument) accepts one of: "user", "id" or "friend".
@@ -72,7 +73,7 @@ func IsTransactionExists(id int, db *sqlx.DB, ctx context.Context, mem *bigcache
 func GetTransactionBy(switcher string, t Transaction, db *sqlx.DB, ctx context.Context) ([]Transaction, error) {
 	c, err := db.Connx(ctx)
 	if err != nil {
-		return []Transaction{}, err
+		return []Transaction{}, decorator.Err(err)
 	}
 	defer c.Close()
 
@@ -80,28 +81,28 @@ func GetTransactionBy(switcher string, t Transaction, db *sqlx.DB, ctx context.C
 	case "user":
 		r, err := c.QueryContext(ctx, "SELECT * FROM transactions WHERE sender = ?", t.Sender.ID)
 		if err != nil {
-			return []Transaction{}, err
+			return []Transaction{}, decorator.Err(err)
 		}
 		defer r.Close()
 
 		var t []Transaction
 		err = sqlscan.ScanOne(&t, r)
 		if err != nil {
-			return []Transaction{}, err
+			return []Transaction{}, decorator.Err(err)
 		}
 
 		return t, err
 	case "id":
 		r, err := c.QueryContext(ctx, "SELECT * FROM transactions WHERE id = ?", t.ID)
 		if err != nil {
-			return []Transaction{}, err
+			return []Transaction{}, decorator.Err(err)
 		}
 		defer r.Close()
 
 		var t []Transaction
 		err = sqlscan.ScanAll(&t, r)
 		if err != nil {
-			return []Transaction{}, err
+			return []Transaction{}, decorator.Err(err)
 		}
 
 		return t, err
@@ -109,14 +110,14 @@ func GetTransactionBy(switcher string, t Transaction, db *sqlx.DB, ctx context.C
 	case "friend":
 		r, err := c.QueryContext(ctx, "SELECT * FROM transactions WHERE sender = ? AND recipient = ?", t.Sender.ID, t.Recipient.ID)
 		if err != nil {
-			return []Transaction{}, err
+			return []Transaction{}, decorator.Err(err)
 		}
 		defer r.Close()
 
 		var t []Transaction
 		err = sqlscan.ScanAll(&t, r)
 		if err != nil {
-			return []Transaction{}, err
+			return []Transaction{}, decorator.Err(err)
 		}
 
 		return t, err
@@ -130,7 +131,7 @@ func GetTransactionBy(switcher string, t Transaction, db *sqlx.DB, ctx context.C
 func CreateTransaction(i Intermediate, db *sqlx.DB, ctx context.Context) (int, error) {
 	c, err := db.Connx(ctx)
 	if err != nil {
-		return 0, err
+		return 0, decorator.Err(err)
 	}
 	defer c.Close()
 
@@ -138,8 +139,7 @@ func CreateTransaction(i Intermediate, db *sqlx.DB, ctx context.Context) (int, e
 		ctx,
 		`INSERT INTO transactions
 		  (sender, recipient, amount, message, status, created_at, updated_at)
-			VALUES (?, ?, ?, ?, ?, ?, ?)
-			RETURNING id;`,
+			VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id`,
 		i.Sender,
 		i.Recipient,
 		i.Message,
@@ -148,14 +148,16 @@ func CreateTransaction(i Intermediate, db *sqlx.DB, ctx context.Context) (int, e
 		time.Now().Unix(),
 	)
 	if err != nil {
-		return 0, err
+		return 0, decorator.Err(err)
 	}
 	defer r.Close()
 
 	var t int
-	err = r.Scan(&t)
-	if err != nil {
-		return 0, err
+	for r.Next() {
+		err = r.Scan(&t)
+		if err != nil {
+			return 0, decorator.Err(err)
+		}
 	}
 
 	return t, nil
@@ -165,7 +167,7 @@ func CreateTransaction(i Intermediate, db *sqlx.DB, ctx context.Context) (int, e
 func UpdateStatus(t Transaction, db *sqlx.DB, ctx context.Context) (int, error) {
 	c, err := db.Connx(ctx)
 	if err != nil {
-		return 0, err
+		return 0, decorator.Err(err)
 	}
 	defer c.Close()
 
@@ -179,7 +181,7 @@ func UpdateStatus(t Transaction, db *sqlx.DB, ctx context.Context) (int, error) 
 		t.ID,
 	)
 	if err != nil {
-		return 0, err
+		return 0, decorator.Err(err)
 	}
 	return t.ID, nil
 }
@@ -188,7 +190,7 @@ func UpdateStatus(t Transaction, db *sqlx.DB, ctx context.Context) (int, error) 
 func CreateRequest(i Intermediate, db *sqlx.DB, ctx context.Context) (int, error) {
 	c, err := db.Connx(ctx)
 	if err != nil {
-		return 0, err
+		return 0, decorator.Err(err)
 	}
 	defer c.Close()
 
@@ -207,14 +209,16 @@ func CreateRequest(i Intermediate, db *sqlx.DB, ctx context.Context) (int, error
 		time.Now().Unix(),
 	)
 	if err != nil {
-		return 0, err
+		return 0, decorator.Err(err)
 	}
 	defer r.Close()
 
 	var t int
-	err = r.Scan(&t)
-	if err != nil {
-		return 0, err
+	for r.Next() {
+		err = r.Scan(&t)
+		if err != nil {
+			return 0, decorator.Err(err)
+		}
 	}
 
 	return t, nil
@@ -228,12 +232,12 @@ func RefreshMemory(t []Transaction, mem *bigcache.BigCache) error {
 
 	err := mem.Delete("TransactionIDs")
 	if err != nil {
-		return err
+		return decorator.Err(err)
 	}
 
 	err = mem.Set("TransactionIDs", []byte(strings.Join(ids, ",")))
 	if err != nil {
-		return err
+		return decorator.Err(err)
 	}
 
 	return nil

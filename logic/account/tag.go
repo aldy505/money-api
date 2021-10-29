@@ -3,6 +3,7 @@ package account
 import (
 	"context"
 	"errors"
+	"money-api/platform/decorator"
 	"strings"
 	"time"
 
@@ -25,12 +26,12 @@ func IsTagExists(tag string, db *sqlx.DB, ctx context.Context, mem *bigcache.Big
 	if errors.Is(err, bigcache.ErrEntryNotFound) {
 		accounts, err := GetAllAccounts(db, ctx)
 		if err != nil {
-			return false, err
+			return false, decorator.Err(err)
 		}
 
 		err = RefreshMemory(accounts, mem)
 		if err != nil {
-			return false, err
+			return false, decorator.Err(err)
 		}
 
 		for _, v := range accounts {
@@ -42,14 +43,14 @@ func IsTagExists(tag string, db *sqlx.DB, ctx context.Context, mem *bigcache.Big
 		return false, nil
 	}
 
-	return false, err
+	return false, decorator.Err(err)
 }
 
 // Returns the ID of the account
 func UpdateTag(a Account, db *sqlx.DB, ctx context.Context) (int, error) {
 	c, err := db.Connx(ctx)
 	if err != nil {
-		return 0, err
+		return 0, decorator.Err(err)
 	}
 	defer c.Close()
 
@@ -61,7 +62,7 @@ func UpdateTag(a Account, db *sqlx.DB, ctx context.Context) (int, error) {
 		a.ID,
 	)
 	if err != nil {
-		return 0, err
+		return 0, decorator.Err(err)
 	}
 
 	return a.ID, nil

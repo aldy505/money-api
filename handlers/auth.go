@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"money-api/logic/account"
 	"money-api/logic/auth"
 	"money-api/logic/out"
 	"net/http"
@@ -8,6 +9,11 @@ import (
 
 	"github.com/labstack/echo/v4"
 )
+
+type userAccount struct {
+	account.Account
+	auth.User
+}
 
 func (d *Dependency) Login(c echo.Context) error {
 	var user auth.User
@@ -79,7 +85,18 @@ func (d *Dependency) Signup(c echo.Context) error {
 		return err
 	}
 
-	return c.JSON(http.StatusCreated, auth.User{ID: u.ID, Name: u.Name, Email: u.Email})
+	finalAccount := account.Account{
+		ID: u.ID,
+	}
+	a, err := account.CreateAccount(finalAccount, d.DB, c.Request().Context())
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusCreated, userAccount{
+		account.Account{Tag: a.Tag},
+		auth.User{ID: u.ID, Name: u.Name, Email: u.Email},
+	})
 }
 
 func (d *Dependency) Verify(c echo.Context) error {

@@ -95,7 +95,7 @@ func (d *Dependency) GetTransactionByID(c echo.Context) error {
 
 func (d *Dependency) SendMoney(c echo.Context) error {
 	var intermediate transaction.Intermediate
-	err := c.Bind(intermediate)
+	err := c.Bind(&intermediate)
 	if err != nil {
 		return err
 	}
@@ -138,7 +138,7 @@ func (d *Dependency) SendMoney(c echo.Context) error {
 
 func (d *Dependency) RequestMoney(c echo.Context) error {
 	var intermediate transaction.Intermediate
-	err := c.Bind(intermediate)
+	err := c.Bind(&intermediate)
 	if err != nil {
 		return err
 	}
@@ -158,7 +158,7 @@ func (d *Dependency) RequestMoney(c echo.Context) error {
 
 func (d *Dependency) UpdateStatus(c echo.Context) error {
 	var trx transaction.Transaction
-	err := c.Bind(trx)
+	err := c.Bind(&trx)
 	if err != nil {
 		return err
 	}

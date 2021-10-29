@@ -1,6 +1,10 @@
 package auth
 
-import "github.com/aldy505/phc-crypto/argon2"
+import (
+	"money-api/platform/decorator"
+
+	"github.com/aldy505/phc-crypto/argon2"
+)
 
 func GeneratePassword(password string) (string, error) {
 	hash, err := argon2.Hash(password, argon2.Config{})
@@ -13,7 +17,7 @@ func GeneratePassword(password string) (string, error) {
 func VerifyPassword(plain, hashed string) (bool, error) {
 	verify, err := argon2.Verify(hashed, plain)
 	if err != nil {
-		return false, err
+		return false, decorator.Err(err)
 	}
 	return verify, nil
 }

@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"money-api/platform/decorator"
 	"strconv"
 	"strings"
 	"time"
@@ -14,20 +15,22 @@ import (
 func CheckIfUserExists(user User, db *sqlx.DB, ctx context.Context) (bool, error) {
 	c, err := db.Connx(ctx)
 	if err != nil {
-		return false, err
+		return false, decorator.Err(err)
 	}
 	defer c.Close()
 
 	var res string
-	r, err := c.QueryxContext(ctx, "SELECT name FROM users WHERE email = ?", user.Email)
+	r, err := c.QueryContext(ctx, "SELECT email FROM users WHERE email = ?", user.Email)
 	if err != nil {
-		return false, err
+		return false, decorator.Err(err)
 	}
 	defer r.Close()
 
-	err = r.Scan(&res)
-	if err != nil {
-		return false, err
+	for r.Next() {
+		err = r.Scan(&res)
+		if err != nil {
+			return false, decorator.Err(err)
+		}
 	}
 
 	return res == user.Email, nil
@@ -36,20 +39,20 @@ func CheckIfUserExists(user User, db *sqlx.DB, ctx context.Context) (bool, error
 func GetUserByEmail(email string, db *sqlx.DB, ctx context.Context) (User, error) {
 	c, err := db.Connx(ctx)
 	if err != nil {
-		return User{}, err
+		return User{}, decorator.Err(err)
 	}
 	defer c.Close()
 
 	var u User
 	r, err := c.QueryContext(ctx, "SELECT * FROM users WHERE email = ?", email)
 	if err != nil {
-		return User{}, err
+		return User{}, decorator.Err(err)
 	}
 	defer r.Close()
 
 	err = sqlscan.ScanOne(&u, r)
 	if err != nil {
-		return User{}, err
+		return User{}, decorator.Err(err)
 	}
 
 	return u, nil
@@ -58,20 +61,20 @@ func GetUserByEmail(email string, db *sqlx.DB, ctx context.Context) (User, error
 func GetAllUsers(db *sqlx.DB, ctx context.Context) ([]User, error) {
 	c, err := db.Connx(ctx)
 	if err != nil {
-		return []User{}, err
+		return []User{}, decorator.Err(err)
 	}
 	defer c.Close()
 
 	var u []User
 	r, err := c.QueryContext(ctx, "SELECT * FROM users")
 	if err != nil {
-		return []User{}, err
+		return []User{}, decorator.Err(err)
 	}
 	defer r.Close()
 
 	err = sqlscan.ScanAll(&u, r)
 	if err != nil {
-		return []User{}, err
+		return []User{}, decorator.Err(err)
 	}
 
 	return u, nil
@@ -80,15 +83,15 @@ func GetAllUsers(db *sqlx.DB, ctx context.Context) ([]User, error) {
 func RegisterUser(u User, db *sqlx.DB, ctx context.Context) (User, error) {
 	c, err := db.Connx(ctx)
 	if err != nil {
-		return User{}, err
+		return User{}, decorator.Err(err)
 	}
 	defer c.Close()
 
-	r, err := c.QueryContext(
+	_, err = c.ExecContext(
 		ctx,
 		`INSERT INTO users
 			(name, password, email, address, created_at, updated_at)
-			VALUES (?, ?, ?, ?, ?, ?) RETURNING *;`,
+			VALUES (?, ?, ?, ?, ?, ?);`,
 		u.Name,
 		u.Password,
 		u.Email,
@@ -97,14 +100,19 @@ func RegisterUser(u User, db *sqlx.DB, ctx context.Context) (User, error) {
 		time.Now().Unix(),
 	)
 	if err != nil {
-		return User{}, err
+		return User{}, decorator.Err(err)
+	}
+
+	r, err := c.QueryContext(ctx, "SELECT * FROM users WHERE email = ?", u.Email)
+	if err != nil {
+		return User{}, decorator.Err(err)
 	}
 	defer r.Close()
 
 	var user User
 	err = sqlscan.ScanOne(&user, r)
 	if err != nil {
-		return User{}, err
+		return User{}, decorator.Err(err)
 	}
 
 	return user, nil
@@ -118,12 +126,12 @@ func RefreshMemory(u []User, mem *bigcache.BigCache) error {
 
 	err := mem.Delete("UsersID")
 	if err != nil {
-		return err
+		return decorator.Err(err)
 	}
 
 	err = mem.Set("UsersID", []byte(strings.Join(users, ",")))
 	if err != nil {
-		return err
+		return decorator.Err(err)
 	}
 
 	return nil

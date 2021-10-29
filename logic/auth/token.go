@@ -16,8 +16,9 @@ func GenerateJWT(secret []byte, user User) (string, error) {
 	token := jwt.New(jwt.SigningMethodHS256)
 	claims := token.Claims.(jwt.MapClaims)
 
-	claims["iat"] = time.Now()
-	claims["exp"] = time.Now().Add(time.Hour * 1)
+	claims["nbf"] = time.Now().Unix()
+	claims["iat"] = time.Now().Unix()
+	claims["exp"] = time.Now().Add(time.Hour * 1).Unix()
 	claims["email"] = user.Email
 	claims["id"] = user.ID
 	claims["iss"] = os.Getenv("JWT_ISSUER")
@@ -54,6 +55,7 @@ func VerifyJWT(secret []byte, userToken string) (User, error) {
 
 	var user User
 	user.Email = claims["email"].(string)
-	user.ID = claims["id"].(int)
+	id, _ := claims["id"].(float64)
+	user.ID = int(id)
 	return user, nil
 }

@@ -1,4 +1,6 @@
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
+github.com/aidarkhanov/nanoid/v2 v2.0.5 h1:HLx5RyDuvOZ6YxlhYTxSU8Il+q7xVKmXM62MfSxziN0=
+github.com/aidarkhanov/nanoid/v2 v2.0.5/go.mod h1:YF/U48D1yA3AoGGUdRrCV95J/KJBShvR9TyLqQwdtlI=
 github.com/aldy505/phc-crypto v1.1.0 h1:BagRKCrB7FOYy5vnuXR6xs6ml2gJD/CvSJkX/Ozo63w=
 github.com/aldy505/phc-crypto v1.1.0/go.mod h1:LJugClOkOWKnpLrWhSaIDRN/5ftvZPD48S5oXsT7iTg=
 github.com/allegro/bigcache/v3 v3.0.1 h1:Q4Xl3chywXuJNOw7NV+MeySd3zGQDj4KCpkCg0te8mc=
